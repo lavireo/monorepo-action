@@ -113,6 +113,7 @@ const getChanged = (changes: string[], path = '*') : string[] => {
   }
 
   core.debug('found matches');
+  core.debug(path + include);
   let matches = mm(changes, path + include);
   if (exclude)
   {
