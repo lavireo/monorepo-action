@@ -124,9 +124,10 @@ const getFileChanges = (token, base, head) => __awaiter(void 0, void 0, void 0, 
     core.debug(`Basehead: ${base}...${head}`);
     const endpoint = client.rest.repos.compareCommitsWithBasehead.endpoint.merge(props);
     return client.paginate(endpoint).then(([response]) => {
+        core.debug(`Response keys: ${Object.keys(response)}`);
         const { status, files } = response.data;
         core.debug(`Status: ${status}`);
-        core.debug(`File keys: ${Object.keys(files[0] || {})}`);
+        core.debug(`File keys: ${Object.keys(files[0])}`);
         return files.map((e) => e.filename);
     });
 });
