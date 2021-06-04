@@ -26,11 +26,11 @@
  */
 
 
-import { relative }    from 'path';
-import * as micromatch from 'micromatch';
-import * as core       from '@actions/core';
-import * as github     from '@actions/github';
-import { FileEntry }   from './types';
+import { relative }  from 'path';
+import * as mm       from 'micromatch';
+import * as core     from '@actions/core';
+import * as github   from '@actions/github';
+import { FileEntry } from './types';
 
 /**
  * Main functionality
@@ -113,7 +113,20 @@ const getChanged = (changes: string[], path = '*') : string[] => {
   }
 
   core.debug('found matches');
-  const matches = micromatch(changes, path + include);
+  let matches = mm(changes, path + include);
+  if (exclude)
+  {
+    /**
+     * Filter out any matches that should be excluded
+     * from being matched. */
+    matches = matches.filter(m => !mm.isMatch(m, path + exclude));
+  }
+
+  for (const match of matches)
+  {
+    core.debug('  ' + match);
+  }
+
   const paths   = matches.map(m => relative(path, m));
   for (const match of paths)
   {

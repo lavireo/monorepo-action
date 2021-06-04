@@ -36,7 +36,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const path_1 = require("path");
-const micromatch = require("micromatch");
+const mm = require("micromatch");
 const core = require("@actions/core");
 const github = require("@actions/github");
 /**
@@ -107,7 +107,16 @@ const getChanged = (changes, path = '*') => {
         core.debug('  ' + file);
     }
     core.debug('found matches');
-    const matches = micromatch(changes, path + include);
+    let matches = mm(changes, path + include);
+    if (exclude) {
+        /**
+         * Filter out any matches that should be excluded
+         * from being matched. */
+        matches = matches.filter(m => !mm.isMatch(m, path + exclude));
+    }
+    for (const match of matches) {
+        core.debug('  ' + match);
+    }
     const paths = matches.map(m => path_1.relative(path, m));
     for (const match of paths) {
         core.debug('  ' + match);
