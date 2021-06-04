@@ -86,6 +86,9 @@ const run = () => __awaiter(void 0, void 0, void 0, function* () {
      * Get changed files and reduce them to changed package paths. */
     //const changes = await getFileChanges(token, pullRequest.number);
     const changed = getChanged(changes, path);
+    for (const match of changed) {
+        core.debug(match.name + ': ' + match.path);
+    }
     /**
      * Check if we are over the max number of changes. */
     if (!!maxChanged && changed.length > parseInt(maxChanged)) {
@@ -106,24 +109,21 @@ const run = () => __awaiter(void 0, void 0, void 0, function* () {
 const getChanged = (changes, path) => {
     const include = core.getInput('include', { required: true });
     const exclude = core.getInput('exclude', { required: false });
-    core.debug('Path: ' + path);
-    core.debug('Including glob: ' + include);
-    core.debug('Excluding glob: ' + exclude);
-    let matches = mm(changes, path + include);
+    if (include !== '*') {
+        /**
+         * Filter based on include glob */
+        changes = mm(changes, path + include);
+    }
     if (exclude.length > 0) {
         /**
          * Filter out any matches that should be excluded
          * from being matched. */
-        matches = matches.filter(m => !mm.isMatch(m, path + exclude));
+        changes = changes.filter(m => !mm.isMatch(m, path + exclude));
     }
-    for (const match of matches) {
-        core.debug('  ' + match);
-    }
-    const paths = matches.map(m => path_1.relative(path, m));
-    for (const match of paths) {
-        core.debug('  ' + match);
-    }
-    return [];
+    return changes.map(entry => ({
+        path: entry,
+        name: path_1.relative(path, entry)
+    }));
 };
 /**
  * Returns PR with all file changes
