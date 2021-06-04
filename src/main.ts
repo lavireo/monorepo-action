@@ -26,9 +26,11 @@
  */
 
 
-import * as core     from '@actions/core';
-import * as github   from '@actions/github';
-import { FileEntry } from './types';
+import { relative }    from 'path';
+import * as micromatch from 'micromatch';
+import * as core       from '@actions/core';
+import * as github     from '@actions/github';
+import { FileEntry }   from './types';
 
 /**
  * Main functionality
@@ -97,7 +99,7 @@ const run = async () : Promise<void> => {
  * @param  {string[]} changes
  * @return {string[]}
  */
-const getChanged = (changes: string[], path = '/') : string[] => {
+const getChanged = (changes: string[], path = '*') : string[] => {
   const include = core.getInput('include', { required: true });
   const exclude = core.getInput('exclude', { required: false });
 
@@ -108,6 +110,14 @@ const getChanged = (changes: string[], path = '/') : string[] => {
   for (const file of changes)
   {
     core.debug('  ' + file);
+  }
+
+  core.debug('found matches');
+  const matches = micromatch(changes, path + include);
+  const paths   = matches.map(m => relative(path, m));
+  for (const match of paths)
+  {
+    core.debug('  ' + match);
   }
 
   return [];
@@ -134,8 +144,14 @@ const getFileChanges = async (token: string, base: string, head: string) : Promi
   return client.paginate<any>(endpoint).then(
     ([ response ]) => {
       const { status, files } = response;
-      core.debug(`Status: ${status}`);
-      core.debug(`File keys: ${Object.keys(files[0])}`);
+      if (status !== 'ahead')
+      {
+        /**
+         * The response should always
+         * be ahead of the base. */
+        throw new Error('Basehead wrong way around');
+      }
+
       return files.map((e: FileEntry) => e.filename);
     }
   );

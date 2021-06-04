@@ -35,6 +35,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const path_1 = require("path");
+const micromatch = require("micromatch");
 const core = require("@actions/core");
 const github = require("@actions/github");
 /**
@@ -94,7 +96,7 @@ const run = () => __awaiter(void 0, void 0, void 0, function* () {
  * @param  {string[]} changes
  * @return {string[]}
  */
-const getChanged = (changes, path = '/') => {
+const getChanged = (changes, path = '*') => {
     const include = core.getInput('include', { required: true });
     const exclude = core.getInput('exclude', { required: false });
     core.debug('Path: ' + path);
@@ -103,6 +105,12 @@ const getChanged = (changes, path = '/') => {
     core.debug('found changed files:');
     for (const file of changes) {
         core.debug('  ' + file);
+    }
+    core.debug('found matches');
+    const matches = micromatch(changes, path + include);
+    const paths = matches.map(m => path_1.relative(path, m));
+    for (const match of paths) {
+        core.debug('  ' + match);
     }
     return [];
 };
@@ -125,8 +133,12 @@ const getFileChanges = (token, base, head) => __awaiter(void 0, void 0, void 0, 
     const endpoint = client.rest.repos.compareCommitsWithBasehead.endpoint.merge(props);
     return client.paginate(endpoint).then(([response]) => {
         const { status, files } = response;
-        core.debug(`Status: ${status}`);
-        core.debug(`File keys: ${Object.keys(files[0])}`);
+        if (status !== 'ahead') {
+            /**
+             * The response should always
+             * be ahead of the base. */
+            throw new Error('Basehead wrong way around');
+        }
         return files.map((e) => e.filename);
     });
 });
