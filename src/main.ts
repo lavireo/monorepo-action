@@ -99,23 +99,15 @@ const run = async () : Promise<void> => {
  * @param  {string[]} changes
  * @return {string[]}
  */
-const getChanged = (changes: string[], path = '') : string[] => {
+const getChanged = (changes: string[], path: string) : string[] => {
   const include = core.getInput('include', { required: true });
   const exclude = core.getInput('exclude', { required: false });
 
   core.debug('Path: ' + path);
   core.debug('Including glob: ' + include);
   core.debug('Excluding glob: ' + exclude);
-  core.debug('found changed files:');
-  for (const file of changes)
-  {
-    core.debug('  ' + file);
-  }
-
-  core.debug('found matches');
-  core.debug(path + include);
   let matches = mm(changes, path + include);
-  if (exclude)
+  if (exclude.length > 0)
   {
     /**
      * Filter out any matches that should be excluded
