@@ -38,7 +38,7 @@ import { FileEntry } from './types';
 const run = async () : Promise<void> => {
   /**
    * Make the input values accessible. */
-  const path       = core.getInput('path', { required: true });
+  const path       = core.getInput('path', { required: false });
   const token      = core.getInput('token', { required: true });
   const maxChanged = core.getInput('max-changed', { required: false });
 
@@ -56,7 +56,7 @@ const run = async () : Promise<void> => {
   /**
    * Get changed files and reduce them to changed package paths. */
   const changes = await getFileChanges(token, pullRequest.number);
-  const changed = getChanged(path, changes);
+  const changed = getChanged(changes, path);
 
   /**
    * Check if we are over the max number of changes. */
@@ -67,8 +67,8 @@ const run = async () : Promise<void> => {
 
   /**
    * Set the required output values */
-  core.setOutput('path', path);
-  core.setOutput('changed', changed);
+  const matrix = { include: [] }
+  core.setOutput('matrix', matrix);
 };
 
 /**
@@ -78,10 +78,11 @@ const run = async () : Promise<void> => {
  * @param  {string[]} changes
  * @return {string[]}
  */
-const getChanged = (path: string, changes: string[]) : string[] => {
+const getChanged = (changes: string[], path = '/') : string[] => {
   const include = core.getInput('include', { required: true });
   const exclude = core.getInput('exclude', { required: false });
 
+  core.debug('Path: ' + path);
   core.debug('Including glob: ' + include);
   core.debug('Excluding glob: ' + exclude);
   core.debug('found changed files:');

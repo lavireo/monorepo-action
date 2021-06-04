@@ -52,7 +52,7 @@ const github = __nccwpck_require__(438);
 const run = () => __awaiter(void 0, void 0, void 0, function* () {
     /**
      * Make the input values accessible. */
-    const path = core.getInput('path', { required: true });
+    const path = core.getInput('path', { required: false });
     const token = core.getInput('token', { required: true });
     const maxChanged = core.getInput('max-changed', { required: false });
     /**
@@ -67,7 +67,7 @@ const run = () => __awaiter(void 0, void 0, void 0, function* () {
     /**
      * Get changed files and reduce them to changed package paths. */
     const changes = yield getFileChanges(token, pullRequest.number);
-    const changed = getChanged(path, changes);
+    const changed = getChanged(changes, path);
     /**
      * Check if we are over the max number of changes. */
     if (!!maxChanged && changed.length > parseInt(maxChanged)) {
@@ -75,8 +75,8 @@ const run = () => __awaiter(void 0, void 0, void 0, function* () {
     }
     /**
      * Set the required output values */
-    core.setOutput('path', path);
-    core.setOutput('changed', changed);
+    const matrix = { include: [] };
+    core.setOutput('matrix', matrix);
 });
 /**
  * Returns PR with all file changes
@@ -85,9 +85,10 @@ const run = () => __awaiter(void 0, void 0, void 0, function* () {
  * @param  {string[]} changes
  * @return {string[]}
  */
-const getChanged = (path, changes) => {
+const getChanged = (changes, path = '/') => {
     const include = core.getInput('include', { required: true });
     const exclude = core.getInput('exclude', { required: false });
+    core.debug('Path: ' + path);
     core.debug('Including glob: ' + include);
     core.debug('Excluding glob: ' + exclude);
     core.debug('found changed files:');
