@@ -1,0 +1,27 @@
+name: 'Monorepo'
+description: 'Makes it easy to work with monorepos'
+inputs:
+  path:
+    required: false
+    description: 'The path for the packages'
+  token:
+    required: true
+    description: 'GitHub token to use for reading the changes'
+  include:
+    default: '*'
+    description: 'Pattern to use for including services'
+    required: true
+  exclude:
+    required: false
+    description: 'Pattern to use for excluding services'
+  maxChanges:
+    required: false
+    description: 'Maximum number of changed packages per PR'
+outputs:
+  path:
+    description: 'Exported package path for reusing'
+  changed:
+    description: 'A list of changed packages'
+runs:
+  using: 'node12'
+  main: 'dist/index.js'

@@ -1,0 +1,62 @@
+---
+root: true
+extends:
+  - "eslint:recommended"
+  - "plugin:@typescript-eslint/recommended"
+parser: "@typescript-eslint/parser"
+parserOptions:
+  project:
+    - "./tsconfig.json"
+  ecmaFeatures:
+    jsx: false
+env:
+  es6: true
+  browser: false
+plugins:
+  - "jest"
+  - "@typescript-eslint"
+rules:
+  "curly":
+    - error
+    - multi-line
+  "quotes":
+    - error
+    - single
+    - avoidEscape: true
+  "eqeqeq":
+    - error
+    - always
+    - null: ignore
+  "no-empty":
+    - error
+    - allowEmptyCatch: true
+  "complexity":
+    - off
+    - 20
+  "max-lines":
+    - off
+    - max: 300
+      skipBlankLines: true
+      skipComments: true
+  "max-lines-per-function":
+    - off
+    - max: 50,
+      skipBlankLines: true
+      skipComments: true
+      IIFEs: true
+  "no-console": 0
+  "func-style": 2
+  "consistent-return": 2
+  "prefer-arrow-callback":
+    - 2
+    - allowUnboundThis: false
+      allowNamedFunctions: false
+  "jest/no-focused-tests": 2
+  "jest/no-disabled-tests": 2
+  "@typescript-eslint/camelcase": 0
+  "@typescript-eslint/no-explicit-any": 0
+  "@typescript-eslint/no-empty-function": 0
+  "@typescript-eslint/no-empty-interface": 0
+  "@typescript-eslint/no-unused-vars":
+    - 2
+    - varsIgnorePattern: ^_
