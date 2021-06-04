@@ -55,22 +55,22 @@ const run = async () : Promise<void> => {
    * depending on the event type. */
   switch (eventName) {
     case 'push':
-      changes = []
+      changes = await getFileChanges(token, payload.before, payload.after);
       break;
 
     case 'pull_request':
-      //changes = await getFileChanges(token, payload.repository);
+      changes = await getFileChanges(token, payload.before, payload.after);
       break;
   }
 
-  const pullRequest = github.context.payload.pull_request;
-  if (!pullRequest?.number)
-  {
+  //const pullRequest = payload?.pull_request.;
+  //if (!pullRequest?.number)
+  //{
     /**
      * This may have been ran from something other
      * than a pull request. */
     //throw new Error('Could not get pull request number from context');
-  }
+  //}
 
   /**
    * Get changed files and reduce them to changed package paths. */
@@ -117,20 +117,29 @@ const getChanged = (changes: string[], path = '/') : string[] => {
  * Returns PR with all file changes
  *
  * @param  {string} token
- * @param  {number} pullNumber
+ * @param  {string} base
+ * @param  {string} head
  * @return {Promise<string[]>}
  */
-const getFileChanges = async (token: string, pullNumber: number) : Promise<string[]> => {
+const getFileChanges = async (token: string, base: string, head: string) : Promise<string[]> => {
   /**
    * Create a new GitHub client
    * and pull some data from the action context. */
   const client          = github.getOctokit(token);
   const { owner, repo } = github.context.repo;
 
-  const props    = { repo, owner, pull_number: pullNumber };
-  const endpoint = client.rest.pulls.listFiles.endpoint.merge(props);
-  return client.paginate<FileEntry>(endpoint).then(
-    entries => entries.map(e => e.filename)
+  const props    = { repo, owner, basehead: `${base}...${head};` };
+  const endpoint = client.rest.repos.compareCommitsWithBasehead.endpoint.merge(props);
+  return client.paginate<any>(endpoint).then(
+    (response: any) => {
+      const { status, files } = response.data;
+      core.debug(`Response keys: ${Object.keys(response)}`);
+      core.debug(`Status: ${status}`);
+      return files.map(e => {
+        core.debug(`File keys: ${Object.keys(e)}`);
+        return e.filename;
+      });
+    }
   );
 }
 
