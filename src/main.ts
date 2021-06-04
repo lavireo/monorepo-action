@@ -135,7 +135,7 @@ const getFileChanges = async (token: string, base: string, head: string) : Promi
       const { status, files } = response.data;
       core.debug(`Response keys: ${Object.keys(response)}`);
       core.debug(`Status: ${status}`);
-      return files.map(e => {
+      return files.map((e: FileEntry) => {
         core.debug(`File keys: ${Object.keys(e)}`);
         return e.filename;
       });
