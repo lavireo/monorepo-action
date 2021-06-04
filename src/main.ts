@@ -132,7 +132,7 @@ const getFileChanges = async (token: string, base: string, head: string) : Promi
   core.debug(`Basehead: ${base}...${head}`);
   const endpoint = client.rest.repos.compareCommitsWithBasehead.endpoint.merge(props);
   return client.paginate<any>(endpoint).then(
-    (response: any) => {
+    ([ response ]) => {
       //const { status, files } = response.data;
       core.debug(`Response keys: ${Object.keys(response)}`);
       //core.debug(`Status: ${status}`);
