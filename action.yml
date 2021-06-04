@@ -24,4 +24,4 @@ outputs:
     description: 'A list of changed packages'
 runs:
   using: 'node12'
-  main: 'dist/main.js'
+  main: 'dist/index.js'
