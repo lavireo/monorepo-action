@@ -128,17 +128,21 @@ const getFileChanges = async (token: string, base: string, head: string) : Promi
   const client          = github.getOctokit(token);
   const { owner, repo } = github.context.repo;
 
-  const props    = { repo, owner, basehead: `${base}...${head};` };
+  const props    = { repo, owner, basehead: `${base}...${head}` };
+  core.debug(`Basehead: ${base}...${head}`);
   const endpoint = client.rest.repos.compareCommitsWithBasehead.endpoint.merge(props);
   return client.paginate<any>(endpoint).then(
     (response: any) => {
-      const { status, files } = response.data;
+      //const { status, files } = response.data;
       core.debug(`Response keys: ${Object.keys(response)}`);
-      core.debug(`Status: ${status}`);
+      //core.debug(`Status: ${status}`);
+      return [''];
+      /*
       return files.map((e: FileEntry) => {
         core.debug(`File keys: ${Object.keys(e)}`);
         return e.filename;
       });
+      */
     }
   );
 }
