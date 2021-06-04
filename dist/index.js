@@ -55,18 +55,33 @@ const run = () => __awaiter(void 0, void 0, void 0, function* () {
     const path = core.getInput('path', { required: false });
     const token = core.getInput('token', { required: true });
     const maxChanged = core.getInput('max-changed', { required: false });
+    let changes = [];
+    const { payload, eventName } = github.context;
     /**
-     * Try to get the pullNumber from the context. */
+     * Debug log the payload. */
+    core.debug(`Payload keys: ${Object.keys(payload)}`);
+    core.debug(`PullRequest keys: ${Object.keys(payload.pull_request || {})}`);
+    /**
+     * Get base and head values
+     * depending on the event type. */
+    switch (eventName) {
+        case 'push':
+            changes = [];
+            break;
+        case 'pull_request':
+            //changes = await getFileChanges(token, payload.repository);
+            break;
+    }
     const pullRequest = github.context.payload.pull_request;
     if (!(pullRequest === null || pullRequest === void 0 ? void 0 : pullRequest.number)) {
         /**
          * This may have been ran from something other
          * than a pull request. */
-        throw new Error('Could not get pull request number from context');
+        //throw new Error('Could not get pull request number from context');
     }
     /**
      * Get changed files and reduce them to changed package paths. */
-    const changes = yield getFileChanges(token, pullRequest.number);
+    //const changes = await getFileChanges(token, pullRequest.number);
     const changed = getChanged(changes, path);
     /**
      * Check if we are over the max number of changes. */

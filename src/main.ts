@@ -42,20 +42,39 @@ const run = async () : Promise<void> => {
   const token      = core.getInput('token', { required: true });
   const maxChanged = core.getInput('max-changed', { required: false });
 
+  let changes: string[] = [];
+  const { payload, eventName } = github.context;
+
   /**
-   * Try to get the pullNumber from the context. */
+   * Debug log the payload. */
+  core.debug(`Payload keys: ${Object.keys(payload)}`)
+  core.debug(`PullRequest keys: ${Object.keys(payload.pull_request || {})}`)
+
+  /**
+   * Get base and head values
+   * depending on the event type. */
+  switch (eventName) {
+    case 'push':
+      changes = []
+      break;
+
+    case 'pull_request':
+      //changes = await getFileChanges(token, payload.repository);
+      break;
+  }
+
   const pullRequest = github.context.payload.pull_request;
   if (!pullRequest?.number)
   {
     /**
      * This may have been ran from something other
      * than a pull request. */
-    throw new Error('Could not get pull request number from context');
+    //throw new Error('Could not get pull request number from context');
   }
 
   /**
    * Get changed files and reduce them to changed package paths. */
-  const changes = await getFileChanges(token, pullRequest.number);
+  //const changes = await getFileChanges(token, pullRequest.number);
   const changed = getChanged(changes, path);
 
   /**
