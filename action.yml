@@ -8,7 +8,7 @@ inputs:
     required: true
     description: 'GitHub token to use for reading the changes'
   include:
-    default: '*'
+    default: '**'
     description: 'Pattern to use for including services'
     required: true
   exclude:

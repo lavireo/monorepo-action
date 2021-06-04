@@ -99,7 +99,7 @@ const run = async () : Promise<void> => {
  * @param  {string[]} changes
  * @return {string[]}
  */
-const getChanged = (changes: string[], path = '*') : string[] => {
+const getChanged = (changes: string[], path = '') : string[] => {
   const include = core.getInput('include', { required: true });
   const exclude = core.getInput('exclude', { required: false });
 
