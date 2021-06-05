@@ -26,7 +26,7 @@
  */
 
 
-import { relative }  from 'path';
+import {join, relative }  from 'path';
 import * as mm       from 'micromatch';
 import * as core     from '@actions/core';
 import * as github   from '@actions/github';
@@ -123,10 +123,23 @@ const getChanged = (changes: string[], path: string) : Record<string, string>[] 
     changes = changes.filter(m => !mm.isMatch(m, path + exclude));
   }
 
-  return changes.map(entry => ({
-    path: entry,
-    name: relative(path, entry)
-  }));
+  const results = changes
+    .map(change => {
+      /**
+       * Transform file path to be relative to the path specified
+       * and take the first segment as the name. */
+      const [ name ] = relative(path, change).split('/');
+      return name;
+    })
+    .filter((e, i, s) => s.indexOf(e) === i)
+    .map(p => ({ name: p, absolute: join(path, p) }));
+
+  /**
+   * Debug log the changed packages */
+  core.debug('Changed packages:');
+  results.forEach(({ name }) => core.debug(`  ${name}`));
+
+  return results;
 }
 
 /**

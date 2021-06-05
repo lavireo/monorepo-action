@@ -120,10 +120,21 @@ const getChanged = (changes, path) => {
          * from being matched. */
         changes = changes.filter(m => !mm.isMatch(m, path + exclude));
     }
-    return changes.map(entry => ({
-        path: entry,
-        name: path_1.relative(path, entry)
-    }));
+    const results = changes
+        .map(change => {
+        /**
+         * Transform file path to be relative to the path specified
+         * and take the first segment as the name. */
+        const [name] = path_1.relative(path, change).split('/');
+        return name;
+    })
+        .filter((e, i, s) => s.indexOf(e) === i)
+        .map(p => ({ name: p, absolute: path_1.join(path, p) }));
+    /**
+     * Debug log the changed packages */
+    core.debug('Changed packages:');
+    results.forEach(({ name }) => core.debug(`  ${name}`));
+    return results;
 };
 /**
  * Returns PR with all file changes
