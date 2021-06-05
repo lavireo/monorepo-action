@@ -79,7 +79,7 @@ const run = async () : Promise<void> => {
   /**
    * Set the required output values...
    * may need escaping? .replace(/"/g, '\\"')) */
-  core.setOutput('matrix', JSON.stringify(changedPackages));
+  core.setOutput('matrix', JSON.stringify({ include: changedPackages }));
 };
 
 /**

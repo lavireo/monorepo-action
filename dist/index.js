@@ -87,7 +87,7 @@ const run = () => __awaiter(void 0, void 0, void 0, function* () {
     /**
      * Set the required output values...
      * may need escaping? .replace(/"/g, '\\"')) */
-    core.setOutput('matrix', JSON.stringify(changedPackages));
+    core.setOutput('matrix', JSON.stringify({ include: changedPackages }));
 });
 /**
  * Returns PR with all file changes
