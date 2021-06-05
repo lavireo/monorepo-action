@@ -52,6 +52,7 @@ const github = __nccwpck_require__(5438);
  * @return {Promise}
  */
 const run = () => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
     /**
      * Make the input values accessible. */
     const path = core.getInput('path', { required: false });
@@ -66,32 +67,22 @@ const run = () => __awaiter(void 0, void 0, void 0, function* () {
     /**
      * Get base and head values
      * depending on the event type. */
+    let base, head;
     switch (eventName) {
         case 'push':
-            changes = yield getFileChanges(token, payload.before, payload.after);
+            base = payload.before;
+            head = payload.after;
             break;
         case 'pull_request':
-            changes = yield getFileChanges(token, payload.before, payload.after);
+            base = (_a = payload.pull_request) === null || _a === void 0 ? void 0 : _a.base.sha;
+            head = (_b = payload.pull_request) === null || _b === void 0 ? void 0 : _b.head.sha;
             break;
     }
-    //const pullRequest = payload?.pull_request.;
-    //if (!pullRequest?.number)
-    //{
-    /**
-     * This may have been ran from something other
-     * than a pull request. */
-    //throw new Error('Could not get pull request number from context');
-    //}
     /**
      * Get changed files and reduce them to changed package paths. */
-    //const changes = await getFileChanges(token, pullRequest.number);
-    const changed = getChanged(changes, path);
-    for (const match of changed) {
-        core.debug(match.name + ': ' + match.path);
-    }
-    /**
-     * Check if we are over the max number of changes. */
-    if (!!maxChanged && changed.length > parseInt(maxChanged)) {
+    const changedFiles = yield getFileChanges(token, base, head);
+    const changedPackages = getChangedPackages(changedFiles, path);
+    if (!!maxChanged && changedPackages.length > parseInt(maxChanged)) {
         throw new Error('Number of changes exceeds maxChanges');
     }
     /**
@@ -106,7 +97,7 @@ const run = () => __awaiter(void 0, void 0, void 0, function* () {
  * @param  {string[]} changes
  * @return {string[]}
  */
-const getChanged = (changes, path) => {
+const getChangedPackages = (changes, path) => {
     const include = core.getInput('include', { required: true });
     const exclude = core.getInput('exclude', { required: false });
     if (include !== '*') {

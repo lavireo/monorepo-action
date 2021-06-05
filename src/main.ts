@@ -55,38 +55,24 @@ const run = async () : Promise<void> => {
   /**
    * Get base and head values
    * depending on the event type. */
+  let base, head;
   switch (eventName) {
     case 'push':
-      changes = await getFileChanges(token, payload.before, payload.after);
+      base = payload.before;
+      head = payload.after;
       break;
 
     case 'pull_request':
-      changes = await getFileChanges(token, payload.before, payload.after);
+      base = payload.pull_request?.base.sha;
+      head = payload.pull_request?.head.sha;
       break;
   }
 
-  //const pullRequest = payload?.pull_request.;
-  //if (!pullRequest?.number)
-  //{
-    /**
-     * This may have been ran from something other
-     * than a pull request. */
-    //throw new Error('Could not get pull request number from context');
-  //}
-
   /**
    * Get changed files and reduce them to changed package paths. */
-  //const changes = await getFileChanges(token, pullRequest.number);
-  const changed = getChanged(changes, path);
-
-  for (const match of changed)
-  {
-    core.debug(match.name + ': ' + match.path);
-  }
-
-  /**
-   * Check if we are over the max number of changes. */
-  if (!!maxChanged && changed.length > parseInt(maxChanged))
+  const changedFiles    = await getFileChanges(token, base, head);
+  const changedPackages = getChangedPackages(changedFiles, path);
+  if (!!maxChanged && changedPackages.length > parseInt(maxChanged))
   {
     throw new Error('Number of changes exceeds maxChanges');
   }
@@ -104,7 +90,7 @@ const run = async () : Promise<void> => {
  * @param  {string[]} changes
  * @return {string[]}
  */
-const getChanged = (changes: string[], path: string) : Record<string, string>[] => {
+const getChangedPackages = (changes: string[], path: string) : Record<string, string>[] => {
   const include = core.getInput('include', { required: true });
   const exclude = core.getInput('exclude', { required: false });
 
