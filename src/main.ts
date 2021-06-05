@@ -77,8 +77,9 @@ const run = async () : Promise<void> => {
   }
 
   /**
-   * Set the required output values */
-  core.setOutput('matrix', JSON.stringify({ include: changedPackages }).replace(/"/g, '\\"'));
+   * Set the required output values...
+   * may need escaping? .replace(/"/g, '\\"')) */
+  core.setOutput('matrix', JSON.stringify({ include: changedPackages }));
 };
 
 /**
@@ -155,7 +156,9 @@ const getFileChanges = async (token: string, base: string, head: string) : Promi
         throw new Error('Basehead wrong way around');
       }
 
-      return files.map((e: FileEntry) => e.filename);
+      /**
+       * Map filename and filter out paths starting with a dot. */
+      return files.map((e: FileEntry) => e.filename).filter((e: string) => !e.startsWith('.'));
     }
   );
 }

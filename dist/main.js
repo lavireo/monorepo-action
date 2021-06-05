@@ -78,8 +78,9 @@ const run = () => __awaiter(void 0, void 0, void 0, function* () {
         throw new Error('Number of changes exceeds maxChanges');
     }
     /**
-     * Set the required output values */
-    core.setOutput('matrix', JSON.stringify({ include: changedPackages }).replace(/"/g, '\\"'));
+     * Set the required output values...
+     * may need escaping? .replace(/"/g, '\\"')) */
+    core.setOutput('matrix', JSON.stringify({ include: changedPackages }));
 });
 /**
  * Returns PR with all file changes
@@ -143,7 +144,9 @@ const getFileChanges = (token, base, head) => __awaiter(void 0, void 0, void 0, 
              * be ahead of the base. */
             throw new Error('Basehead wrong way around');
         }
-        return files.map((e) => e.filename);
+        /**
+         * Map filename and filter out paths starting with a dot. */
+        return files.map((e) => e.filename).filter((e) => !e.startsWith('.'));
     });
 });
 /**
