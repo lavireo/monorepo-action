@@ -86,7 +86,7 @@ const run = () => __awaiter(void 0, void 0, void 0, function* () {
     }
     /**
      * Set the required output values */
-    core.setOutput('matrix', { include: changedPackages });
+    core.setOutput('matrix', changedPackages);
 });
 /**
  * Returns PR with all file changes

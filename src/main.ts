@@ -78,7 +78,7 @@ const run = async () : Promise<void> => {
 
   /**
    * Set the required output values */
-  core.setOutput('matrix', { include: changedPackages });
+  core.setOutput('matrix', changedPackages);
 };
 
 /**
