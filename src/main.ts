@@ -78,7 +78,7 @@ const run = async () : Promise<void> => {
 
   /**
    * Set the required output values */
-  core.setOutput('matrix', changedPackages);
+  core.setOutput('matrix', { include: changedPackages });
 };
 
 /**
@@ -116,7 +116,7 @@ const getChangedPackages = (changes: string[], path: string) : Record<string, st
       return name;
     })
     .filter((e, i, s) => s.indexOf(e) === i)
-    .map(p => ({ name: p, absolute: join(path, p) }));
+    .map(p => ({ name: p, path: join(path, p) }));
 
   /**
    * Debug log the changed packages */

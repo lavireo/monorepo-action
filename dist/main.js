@@ -79,7 +79,7 @@ const run = () => __awaiter(void 0, void 0, void 0, function* () {
     }
     /**
      * Set the required output values */
-    core.setOutput('matrix', changedPackages);
+    core.setOutput('matrix', { include: changedPackages });
 });
 /**
  * Returns PR with all file changes
@@ -111,7 +111,7 @@ const getChangedPackages = (changes, path) => {
         return name;
     })
         .filter((e, i, s) => s.indexOf(e) === i)
-        .map(p => ({ name: p, absolute: path_1.join(path, p) }));
+        .map(p => ({ name: p, path: path_1.join(path, p) }));
     /**
      * Debug log the changed packages */
     core.debug('Changed packages:');
