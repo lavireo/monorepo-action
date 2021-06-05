@@ -51,7 +51,6 @@ const run = () => __awaiter(void 0, void 0, void 0, function* () {
     const path = core.getInput('path', { required: false });
     const token = core.getInput('token', { required: true });
     const maxChanged = core.getInput('max-changed', { required: false });
-    let changes = [];
     const { payload, eventName } = github.context;
     /**
      * Debug log the payload. */
@@ -80,8 +79,7 @@ const run = () => __awaiter(void 0, void 0, void 0, function* () {
     }
     /**
      * Set the required output values */
-    const matrix = { include: [] };
-    core.setOutput('matrix', matrix);
+    core.setOutput('matrix', { include: changedPackages });
 });
 /**
  * Returns PR with all file changes

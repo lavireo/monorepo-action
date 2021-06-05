@@ -44,7 +44,6 @@ const run = async () : Promise<void> => {
   const token      = core.getInput('token', { required: true });
   const maxChanged = core.getInput('max-changed', { required: false });
 
-  let changes: string[] = [];
   const { payload, eventName } = github.context;
 
   /**
@@ -79,8 +78,7 @@ const run = async () : Promise<void> => {
 
   /**
    * Set the required output values */
-  const matrix = { include: [] }
-  core.setOutput('matrix', matrix);
+  core.setOutput('matrix', { include: changedPackages });
 };
 
 /**
