@@ -35,6 +35,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const path_1 = require("path");
+const mm = require("micromatch");
 const core = require("@actions/core");
 const github = require("@actions/github");
 /**
@@ -43,33 +45,42 @@ const github = require("@actions/github");
  * @return {Promise}
  */
 const run = () => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
     /**
      * Make the input values accessible. */
-    const path = core.getInput('path', { required: true });
+    const path = core.getInput('path', { required: false });
     const token = core.getInput('token', { required: true });
     const maxChanged = core.getInput('max-changed', { required: false });
+    const { payload, eventName } = github.context;
     /**
-     * Try to get the pullNumber from the context. */
-    const pullRequest = github.context.payload.pull_request;
-    if (!(pullRequest === null || pullRequest === void 0 ? void 0 : pullRequest.number)) {
-        /**
-         * This may have been ran from something other
-         * than a pull request. */
-        throw new Error('Could not get pull request number from context');
+     * Debug log the payload. */
+    core.debug(`Payload keys: ${Object.keys(payload)}`);
+    core.debug(`PullRequest keys: ${Object.keys(payload.pull_request || {})}`);
+    /**
+     * Get base and head values
+     * depending on the event type. */
+    let base, head;
+    switch (eventName) {
+        case 'push':
+            base = payload.before;
+            head = payload.after;
+            break;
+        case 'pull_request':
+            base = (_a = payload.pull_request) === null || _a === void 0 ? void 0 : _a.base.sha;
+            head = (_b = payload.pull_request) === null || _b === void 0 ? void 0 : _b.head.sha;
+            break;
     }
     /**
      * Get changed files and reduce them to changed package paths. */
-    const changes = yield getFileChanges(token, pullRequest.number);
-    const changed = getChanged(path, changes);
-    /**
-     * Check if we are over the max number of changes. */
-    if (!!maxChanged && changed.length > parseInt(maxChanged)) {
+    const changedFiles = yield getFileChanges(token, base, head);
+    const changedPackages = getChangedPackages(changedFiles, path);
+    if (!!maxChanged && changedPackages.length > parseInt(maxChanged)) {
         throw new Error('Number of changes exceeds maxChanges');
     }
     /**
-     * Set the required output values */
-    core.setOutput('path', path);
-    core.setOutput('changed', changed);
+     * Set the required output values...
+     * may need escaping? .replace(/"/g, '\\"')) */
+    core.setOutput('matrix', JSON.stringify({ include: changedPackages }));
 });
 /**
  * Returns PR with all file changes
@@ -78,33 +89,65 @@ const run = () => __awaiter(void 0, void 0, void 0, function* () {
  * @param  {string[]} changes
  * @return {string[]}
  */
-const getChanged = (path, changes) => {
+const getChangedPackages = (changes, path) => {
     const include = core.getInput('include', { required: true });
     const exclude = core.getInput('exclude', { required: false });
-    core.debug('Including glob: ' + include);
-    core.debug('Excluding glob: ' + exclude);
-    core.debug('found changed files:');
-    for (const file of changes) {
-        core.debug('  ' + file);
+    if (include !== '*') {
+        /**
+         * Filter based on include glob */
+        changes = mm(changes, path + include);
     }
-    return [];
+    if (exclude.length > 0) {
+        /**
+         * Filter out any matches that should be excluded
+         * from being matched. */
+        changes = changes.filter(m => !mm.isMatch(m, path + exclude));
+    }
+    const results = changes
+        .map(change => {
+        /**
+         * Transform file path to be relative to the path specified
+         * and take the first segment as the name. */
+        const [name] = path_1.relative(path, change).split('/');
+        return name;
+    })
+        .filter((e, i, s) => s.indexOf(e) === i)
+        .map(p => ({ name: p, path: path_1.join(path, p) }));
+    /**
+     * Debug log the changed packages */
+    core.debug('Changed packages:');
+    results.forEach(({ name }) => core.debug(`  ${name}`));
+    return results;
 };
 /**
  * Returns PR with all file changes
  *
  * @param  {string} token
- * @param  {number} pullNumber
+ * @param  {string} base
+ * @param  {string} head
  * @return {Promise<string[]>}
  */
-const getFileChanges = (token, pullNumber) => __awaiter(void 0, void 0, void 0, function* () {
+const getFileChanges = (token, base, head) => __awaiter(void 0, void 0, void 0, function* () {
     /**
      * Create a new GitHub client
      * and pull some data from the action context. */
     const client = github.getOctokit(token);
     const { owner, repo } = github.context.repo;
-    const props = { repo, owner, pull_number: pullNumber };
-    const endpoint = client.rest.pulls.listFiles.endpoint.merge(props);
-    return client.paginate(endpoint).then(entries => entries.map(e => e.filename));
+    const props = { repo, owner, basehead: `${base}...${head}` };
+    core.debug(`Basehead: ${base}...${head}`);
+    const endpoint = client.rest.repos.compareCommitsWithBasehead.endpoint.merge(props);
+    return client.paginate(endpoint).then(([response]) => {
+        const { status, files } = response;
+        if (status !== 'ahead') {
+            /**
+             * The response should always
+             * be ahead of the base. */
+            throw new Error('Basehead wrong way around');
+        }
+        /**
+         * Map filename and filter out paths starting with a dot. */
+        return files.map((e) => e.filename).filter((e) => !e.startsWith('.'));
+    });
 });
 /**
  * Run the GitHub action and call `setFailed`

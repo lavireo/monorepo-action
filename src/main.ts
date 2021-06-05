@@ -26,6 +26,8 @@
  */
 
 
+import {join, relative }  from 'path';
+import * as mm       from 'micromatch';
 import * as core     from '@actions/core';
 import * as github   from '@actions/github';
 import { FileEntry } from './types';
@@ -38,37 +40,46 @@ import { FileEntry } from './types';
 const run = async () : Promise<void> => {
   /**
    * Make the input values accessible. */
-  const path       = core.getInput('path', { required: true });
+  const path       = core.getInput('path', { required: false });
   const token      = core.getInput('token', { required: true });
   const maxChanged = core.getInput('max-changed', { required: false });
 
+  const { payload, eventName } = github.context;
+
   /**
-   * Try to get the pullNumber from the context. */
-  const pullRequest = github.context.payload.pull_request;
-  if (!pullRequest?.number)
-  {
-    /**
-     * This may have been ran from something other
-     * than a pull request. */
-    throw new Error('Could not get pull request number from context');
+   * Debug log the payload. */
+  core.debug(`Payload keys: ${Object.keys(payload)}`)
+  core.debug(`PullRequest keys: ${Object.keys(payload.pull_request || {})}`)
+
+  /**
+   * Get base and head values
+   * depending on the event type. */
+  let base, head;
+  switch (eventName) {
+    case 'push':
+      base = payload.before;
+      head = payload.after;
+      break;
+
+    case 'pull_request':
+      base = payload.pull_request?.base.sha;
+      head = payload.pull_request?.head.sha;
+      break;
   }
 
   /**
    * Get changed files and reduce them to changed package paths. */
-  const changes = await getFileChanges(token, pullRequest.number);
-  const changed = getChanged(path, changes);
-
-  /**
-   * Check if we are over the max number of changes. */
-  if (!!maxChanged && changed.length > parseInt(maxChanged))
+  const changedFiles    = await getFileChanges(token, base, head);
+  const changedPackages = getChangedPackages(changedFiles, path);
+  if (!!maxChanged && changedPackages.length > parseInt(maxChanged))
   {
     throw new Error('Number of changes exceeds maxChanges');
   }
 
   /**
-   * Set the required output values */
-  core.setOutput('path', path);
-  core.setOutput('changed', changed);
+   * Set the required output values...
+   * may need escaping? .replace(/"/g, '\\"')) */
+  core.setOutput('matrix', JSON.stringify({ include: changedPackages }));
 };
 
 /**
@@ -78,39 +89,77 @@ const run = async () : Promise<void> => {
  * @param  {string[]} changes
  * @return {string[]}
  */
-const getChanged = (path: string, changes: string[]) : string[] => {
+const getChangedPackages = (changes: string[], path: string) : Record<string, string>[] => {
   const include = core.getInput('include', { required: true });
   const exclude = core.getInput('exclude', { required: false });
 
-  core.debug('Including glob: ' + include);
-  core.debug('Excluding glob: ' + exclude);
-  core.debug('found changed files:');
-  for (const file of changes)
+  if (include !== '*')
   {
-    core.debug('  ' + file);
+    /**
+     * Filter based on include glob */
+    changes = mm(changes, path + include);
   }
 
-  return [];
+  if (exclude.length > 0)
+  {
+    /**
+     * Filter out any matches that should be excluded
+     * from being matched. */
+    changes = changes.filter(m => !mm.isMatch(m, path + exclude));
+  }
+
+  const results = changes
+    .map(change => {
+      /**
+       * Transform file path to be relative to the path specified
+       * and take the first segment as the name. */
+      const [ name ] = relative(path, change).split('/');
+      return name;
+    })
+    .filter((e, i, s) => s.indexOf(e) === i)
+    .map(p => ({ name: p, path: join(path, p) }));
+
+  /**
+   * Debug log the changed packages */
+  core.debug('Changed packages:');
+  results.forEach(({ name }) => core.debug(`  ${name}`));
+
+  return results;
 }
 
 /**
  * Returns PR with all file changes
  *
  * @param  {string} token
- * @param  {number} pullNumber
+ * @param  {string} base
+ * @param  {string} head
  * @return {Promise<string[]>}
  */
-const getFileChanges = async (token: string, pullNumber: number) : Promise<string[]> => {
+const getFileChanges = async (token: string, base: string, head: string) : Promise<string[]> => {
   /**
    * Create a new GitHub client
    * and pull some data from the action context. */
   const client          = github.getOctokit(token);
   const { owner, repo } = github.context.repo;
 
-  const props    = { repo, owner, pull_number: pullNumber };
-  const endpoint = client.rest.pulls.listFiles.endpoint.merge(props);
-  return client.paginate<FileEntry>(endpoint).then(
-    entries => entries.map(e => e.filename)
+  const props    = { repo, owner, basehead: `${base}...${head}` };
+  core.debug(`Basehead: ${base}...${head}`);
+  const endpoint = client.rest.repos.compareCommitsWithBasehead.endpoint.merge(props);
+  return client.paginate<any>(endpoint).then(
+    ([ response ]) => {
+      const { status, files } = response;
+      if (status !== 'ahead')
+      {
+        /**
+         * The response should always
+         * be ahead of the base. */
+        throw new Error('Basehead wrong way around');
+      }
+
+      /**
+       * Map filename and filter out paths starting with a dot. */
+      return files.map((e: FileEntry) => e.filename).filter((e: string) => !e.startsWith('.'));
+    }
   );
 }
 
